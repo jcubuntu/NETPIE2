@@ -1,5 +1,8 @@
 # NETPIE IoT Workshop Day2
 
+### Line Notify
+https://drive.google.com/open?id=1AFMy9k-2UYpgly4vnPLj6ZcmB9_tktG2
+
 ### IoT Intro
 https://drive.google.com/open?id=0B6SLeBnGnF2pYjVJTEtKSTFwclU
 
