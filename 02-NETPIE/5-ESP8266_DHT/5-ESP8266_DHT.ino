@@ -12,8 +12,10 @@ const char* password = "YOUR_WIFI_PASSWORD";  // รหัสผ่าน wifi
 
 #define ALIAS   "YOUR_UNIQUE_ALIAS"           // แทนที่ด้วยหมายเลขของท่าน เช่น "A01"
 #define NEIGHBOR "NEIGHBOR_ALIAS"             // ชื่ออุปกรณ์ของเพื่อน เช่น "A02"
+
 // --------------------------------------------------------------------------------------
 
+#define LEDSTATETOPIC "/ledstate/" ALIAS      // topic ที่ต้องการ publish ส่งสถานะ led ในที่นี้จะเป็น /ledstate/{ชื่อ alias ตัวเอง}
 #define DHTDATATOPIC "/dht/" ALIAS            // topic ที่ต้องการ publish ส่งข้อมูล dht ในที่นี่จะเป็น /dht/{ชื่อ alias ตัวเอง}
 
 #define BUTTONPIN  D7                         // pin ที่ต่อกับปุ่มบนบอร์ด NodeMCU
@@ -22,7 +24,7 @@ const char* password = "YOUR_WIFI_PASSWORD";  // รหัสผ่าน wifi
 int currentLEDState = 0;      // ให้เริ่มต้นเป็น OFF
 int currentButtonState = 1;
 int lastButtonState = 1;
-int lastLEDState = 0;
+int lastLEDState = 1;
 
 #define DHTPIN    D4          // GPIO2 ขาที่ต่อเข้ากับขา DATA (บางโมดูลใช้คำว่า OUT) ของ DHT
 #define DHTTYPE   DHT22       // e.g. DHT11, DHT21, DHT22
@@ -96,11 +98,19 @@ void loop() {
   if (microgear.connected()) {
     microgear.loop();
 
-    currentButtonState = digitalRead(BUTTONPIN);
+    if (currentLEDState != lastLEDState) {
+      microgear.publish(LEDSTATETOPIC, currentLEDState);  // LEDSTATETOPIC ถูก define ไว้ข้างบน
+      lastLEDState = currentLEDState;
+    }
 
-    if (currentButtonState != lastButtonState) {
-      microgear.chat(NEIGHBOR, !currentButtonState);
-      lastButtonState = currentButtonState;
+    currentButtonState = digitalRead(BUTTONPIN);
+    if (currentButtonState == 0) {
+      delay(300);
+      if (lastLEDState == 0) {
+        updateLED(1);
+      } else {
+        updateLED(0);
+      }
     }
 
     // เซนเซอร์​ DHT อ่านถี่เกินไปไม่ได้ จะให้ค่า error เลยต้องเช็คเวลาครั้งสุดท้ายที่อ่านค่า
