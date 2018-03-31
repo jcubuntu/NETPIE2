@@ -13,8 +13,8 @@ const char* password = "YOUR_WIFI_PASSWORD";  // รหัสผ่าน wifi
 #define NEIGHBOR "NEIGHBOR_ALIAS"             // ชื่ออุปกรณ์ของเพื่อน เช่น "A02"
 // --------------------------------------------------------------------------------------
 
-#define BUTTONPIN  D3                         // pin ที่ต่อกับปุ่ม Flash บนบอร์ด NodeMCU
-#define LEDPIN     LED_BUILTIN                // pin ที่ต่อกับไฟ LED บนบอร์ด NodeMCU
+#define BUTTONPIN  D7                         // pin ที่ต่อกับปุ่ม Flash บนบอร์ด NodeMCU
+#define LEDPIN     D0                // pin ที่ต่อกับไฟ LED บนบอร์ด NodeMCU
 
 int currentLEDState = 1;      // ให้เริ่มต้นเป็น OFF หมายเหตุ ไฟ LED บนบอร์ดต่อแบบ active-low
 int lastLEDState = 0;
@@ -25,14 +25,14 @@ WiFiClient client;
 MicroGear microgear(client);
 
 void updateLED(int state) {
-    // ไฟ LED บน NodeMCU จะติดก็ต่อเมื่อส่งค่า LOW ไปให้ LEDPIN 
+    // ไฟ LED บน NodeMCU จะติดก็ต่อเมื่อส่งค่า HIGH ไปให้ LEDPIN 
     if(state==1 && currentLEDState == 0){
         currentLEDState = 1;
-        digitalWrite(LEDPIN, LOW); // LED ON
+        digitalWrite(LEDPIN, HIGH); // LED ON
     }
     else if (state==0 && currentLEDState == 1) {
         currentLEDState = 0;
-        digitalWrite(LEDPIN, HIGH); // LED OFF
+        digitalWrite(LEDPIN, LOW); // LED OFF
     }
 }
 
@@ -85,7 +85,7 @@ void loop() {
           lastLEDState = currentLEDState;
         }
 
-        if (digitalRead(BUTTONPIN)==HIGH) currentButtonState = 0;
+        if (digitalRead(BUTTONPIN)==LOW) currentButtonState = 0;
         else currentButtonState = 1;
 
         if(currentButtonState != lastButtonState){
