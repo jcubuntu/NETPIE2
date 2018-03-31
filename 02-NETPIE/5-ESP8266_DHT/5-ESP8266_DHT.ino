@@ -1,24 +1,40 @@
 #include <ESP8266WiFi.h>
 #include <MicroGear.h>
+#include "DHT.h"
 
 // ----- แก้ค่า config 7 ค่าข้างล่างนี้ --------------------------------------------------------
-const char* ssid     = "SSID";      // ชื่อ ssid
-const char* password = "PASSWORD";  // รหัสผ่าน wifi
+const char* ssid     = "YOUR_WIFI_SSID";      // ชื่อ ssid
+const char* password = "YOUR_WIFI_PASSWORD";  // รหัสผ่าน wifi
 
 #define APPID   "GROUP_APPID"
 #define KEY     "GROUP_KEY"
-#define SECRET  "GROUP_SECERT"
+#define SECRET  "GROUP_SECRET"
 
-#define ALIAS   "ALIAS"           // แทนที่ด้วยหมายเลขของท่าน เช่น "A01"
-#define NEIGHBOR "NEIGHBOR"             // ชื่ออุปกรณ์ของเพื่อน เช่น "A02"
+#define ALIAS   "YOUR_UNIQUE_ALIAS"           // แทนที่ด้วยหมายเลขของท่าน เช่น "A01"
+#define NEIGHBOR "NEIGHBOR_ALIAS"             // ชื่ออุปกรณ์ของเพื่อน เช่น "A02"
 // --------------------------------------------------------------------------------------
+
+#define DHTDATATOPIC "/dht/" ALIAS            // topic ที่ต้องการ publish ส่งข้อมูล dht ในที่นี่จะเป็น /dht/{ชื่อ alias ตัวเอง}
 
 #define BUTTONPIN  D7                         // pin ที่ต่อกับปุ่มบนบอร์ด NodeMCU
 #define LEDPIN     D0                // pin ที่ต่อกับไฟ LED บนบอร์ด NodeMCU
 
 int currentLEDState = 0;      // ให้เริ่มต้นเป็น OFF
-int currentButtonState = 1;   
+int currentButtonState = 1;
 int lastButtonState = 1;
+int lastLEDState = 0;
+
+#define DHTPIN    D4          // GPIO2 ขาที่ต่อเข้ากับขา DATA (บางโมดูลใช้คำว่า OUT) ของ DHT
+#define DHTTYPE   DHT22       // e.g. DHT11, DHT21, DHT22
+DHT dht(DHTPIN, DHTTYPE);
+
+float humid = 0;     // ค่าความชื้น
+float temp  = 0;     // ค่าอุณหภูมิ
+
+long lastDHTRead = 0;
+long lastDHTPublish = 0;
+
+long lastTimeFeed = 0;
 
 WiFiClient client;
 MicroGear microgear(client);
@@ -55,6 +71,7 @@ void setup() {
 
   Serial.begin(115200);
   Serial.println("Starting...");
+  dht.begin(); // initialize โมดูล DHT
 
   // กำหนดชนิดของ PIN (ขาI/O) เช่น INPUT, OUTPUT เป็นต้น
   pinMode(LEDPIN, OUTPUT);          // LED pin mode กำหนดค่า
@@ -78,12 +95,35 @@ void setup() {
 void loop() {
   if (microgear.connected()) {
     microgear.loop();
-    
+
     currentButtonState = digitalRead(BUTTONPIN);
-    
+
     if (currentButtonState != lastButtonState) {
       microgear.chat(NEIGHBOR, !currentButtonState);
       lastButtonState = currentButtonState;
+    }
+
+    // เซนเซอร์​ DHT อ่านถี่เกินไปไม่ได้ จะให้ค่า error เลยต้องเช็คเวลาครั้งสุดท้ายที่อ่านค่า
+    // ว่าทิ้งช่วงนานพอหรือยัง ในที่นี้ตั้งไว้ 2 วินาที ก
+    if (millis() - lastDHTRead > 2000) {
+      humid = dht.readHumidity();     // อ่านค่าความชื้น
+      temp  = dht.readTemperature();  // อ่านค่าอุณหภูมิ
+      lastDHTRead = millis();
+
+      Serial.print("Humid: "); Serial.print(humid); Serial.print(" %, ");
+      Serial.print("Temp: "); Serial.print(temp); Serial.println(" °C ");
+
+      // ตรวจสอบค่า humid และ temp เป็นตัวเลขหรือไม่
+      if (isnan(humid) || isnan(temp)) {
+        Serial.println("Failed to read from DHT sensor!");
+      }
+      else {
+        // เตรียมสตริงในรูปแบบ "{humid},{temp}"
+        String datastring = (String)humid + "," + (String)temp;
+        Serial.print("Sending --> ");
+        Serial.println(datastring);
+        microgear.publish(DHTDATATOPIC, datastring);  // DHTDATATOPIC ถูก define ไว้ข้างบน
+      }
     }
   }
   else {
@@ -91,4 +131,3 @@ void loop() {
     microgear.connect(APPID);
   }
 }
-
