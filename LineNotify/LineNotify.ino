@@ -2,7 +2,6 @@
 #include <ESP8266HTTPClient.h>
 
 #define LINE_TOKEN "YOUR LINE TOKEN"
-#define MESSAGE "YOUR MESSAGE"
 
 const char* ssid     = "SSID";
 const char* password = "PASSWORD";
@@ -65,7 +64,7 @@ void setup() {
 
 void loop() {
   if ((WiFi.status() == WL_CONNECTED)) {
-    Line_Notify(LINE_TOKEN, MESSAGE);
+    Line_Notify(LINE_TOKEN, "Your Message");
     delay(50000);
   }
 }
